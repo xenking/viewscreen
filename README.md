@@ -1,10 +1,10 @@
 # Viewscreen - a personal video streaming server
 
-![Screencast](https://raw.githubusercontent.com/viewscreen/viewscreen/master/screencast.gif?updated489023)
+![Screencast](https://raw.githubusercontent.com/xenking/viewscreen/master/screencast.gif?updated489023)
 
-![Screenshot - Library](https://raw.githubusercontent.com/viewscreen/viewscreen/master/screenshot1.png?updated489023)
-![Screenshot - Import](https://raw.githubusercontent.com/viewscreen/viewscreen/master/screenshot2.png?updated489023)
-![Screenshot - Player](https://raw.githubusercontent.com/viewscreen/viewscreen/master/screenshot3.png?updated489023)
+![Screenshot - Library](https://raw.githubusercontent.com/xenking/viewscreen/master/screenshot1.png?updated489023)
+![Screenshot - Import](https://raw.githubusercontent.com/xenking/viewscreen/master/screenshot2.png?updated489023)
+![Screenshot - Player](https://raw.githubusercontent.com/xenking/viewscreen/master/screenshot3.png?updated489023)
 
 ## Features
 
@@ -75,7 +75,7 @@ $ sudo apt-get update
 $ sudo apt-get install -y wget ffmpeg x264
 
 # Download the viewscreen binary.
-$ sudo wget -O /usr/bin/viewscreen https://github.com/viewscreen/viewscreen/raw/master/viewscreen-linux-amd64
+$ sudo wget -O /usr/bin/viewscreen https://github.com/xenking/viewscreen/raw/master/viewscreen-linux-amd64
 
 # Make it executable.
 $ sudo chmod +x /usr/bin/viewscreen
@@ -202,7 +202,7 @@ The easiest way to build the static binary is using the `Dockerfile.build` file.
 
 ```bash
 # Download the git repo.
-$ git clone https://github.com/viewscreen/viewscreen.git
+$ git clone https://github.com/xenking/viewscreen.git
 $ cd viewscreen/
 
 # Compile the code and create a Docker image for it.

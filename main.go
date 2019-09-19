@@ -23,9 +23,9 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
-	"github.com/viewscreen/viewscreen/internal/downloader"
-	"github.com/viewscreen/viewscreen/internal/search"
-	"github.com/viewscreen/viewscreen/internal/transcoder"
+	"github.com/xenking/viewscreen/internal/downloader"
+	"github.com/xenking/viewscreen/internal/search"
+	"github.com/xenking/viewscreen/internal/transcoder"
 
 	"github.com/eduncan911/podcast"
 	"github.com/julienschmidt/httprouter"

@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/viewscreen/viewscreen/internal/downloader"
-	"github.com/viewscreen/viewscreen/internal/search"
+	"github.com/xenking/viewscreen/internal/downloader"
+	"github.com/xenking/viewscreen/internal/search"
 
 	humanize "github.com/dustin/go-humanize"
 	httprouter "github.com/julienschmidt/httprouter"

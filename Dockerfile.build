@@ -3,7 +3,7 @@ MAINTAINER viewscreen Cloud <github@viewscreen.cloud>
 
 RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /go/src/github.com/viewscreen/viewscreen
+WORKDIR /go/src/github.com/xenking/viewscreen
 
 RUN go get \
     github.com/jteeuwen/go-bindata/... \
