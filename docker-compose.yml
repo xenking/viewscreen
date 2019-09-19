@@ -1,0 +1,13 @@
+version: "3.3"
+services:
+  viewscreen:
+    image: xenking/viewscreen:test
+    container_name: viewscreen
+    restart: always
+    network_mode: "bridge"
+    ports:
+      - 7999:80
+    volumes:
+      - /home/mediauser/Media:/data
+    env_file:
+      - config.env
