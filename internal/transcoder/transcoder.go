@@ -1,7 +1,9 @@
 package transcoder
 
 import (
+	"encoding/binary"
 	"fmt"
+	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -184,12 +186,18 @@ func (t *Transcoder) transcode(srcname string) {
 		log.Error(err)
 		return
 	}
+	// Find ffprobe
+	ffprobe, err := exec.LookPath("ffprobe")
+	if err != nil {
+		log.Error(err)
+		return
+	}
 
 	cmd, err := exec.Command(ffmpeg,
 		"-y",
 		"-i", srcname,
 		"-codec:v", "libx264",
-		"-crf", "25",
+		"-crf", "18",
 		"-bf", "2",
 		"-flags", "+cgop",
 		"-pix_fmt", "yuv420p",
@@ -237,14 +245,33 @@ func (t *Transcoder) transcode(srcname string) {
 
 	// check that our new file is a reasonable size.
 	// TODO: ffprobe and check duration matches?
-	minsize := srcfi.Size() / 5
-	dstfi, err := os.Stat(dstname)
+	srclencmd := exec.Command(ffprobe,
+		"-v", "error",
+		"-show_entries", "format=duration",
+		"-of", "default=noprint_wrappers=1:nokey=1",
+		srcname,
+	)
+	srclen, err := srclencmd.CombinedOutput()
 	if err != nil {
-		log.Errorf("job %q: %s", srcname, err)
+		log.Errorf("job ffprobe %q: %s", srcname, string(srclen))
 		return
 	}
-	if dstfi.Size() < minsize {
-		log.Errorf("job %q: transcoded is too small (%d vs %d); deleting.", srcname, dstfi.Size(), minsize)
+
+	dstlencmd := exec.Command(ffprobe,
+		"-v", "error",
+		"-show_entries", "format=duration",
+		"-of", "default=noprint_wrappers=1:nokey=1",
+		dstname,
+	)
+	dstlen, err := dstlencmd.CombinedOutput()
+	if err != nil {
+		log.Errorf("job ffprobe %q: %s", srcname, string(dstlen))
+		return
+	}
+
+
+	if Float64frombytes(dstlen) != Float64frombytes(srclen) {
+		log.Errorf("job %q: transcoded is too small (%d vs %d); deleting.", srcname, Float64frombytes(dstlen),  Float64frombytes(srclen))
 		if err := os.Remove(dstname); err != nil {
 			log.Error(err)
 		}
@@ -266,4 +293,10 @@ func (t *Transcoder) transcode(srcname string) {
 		log.Errorf("job %q: %s", srcname, err)
 		return
 	}
+}
+
+func Float64frombytes(bytes []byte) float64 {
+	bits := binary.LittleEndian.Uint64(bytes)
+	float := math.Float64frombits(bits)
+	return float
 }
