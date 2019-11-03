@@ -13,14 +13,15 @@ import (
 	"github.com/xenking/viewscreen/internal/downloader"
 	"github.com/xenking/viewscreen/internal/search"
 
-	humanize "github.com/dustin/go-humanize"
-	httprouter "github.com/julienschmidt/httprouter"
+	"github.com/dustin/go-humanize"
+	"github.com/julienschmidt/httprouter"
 )
 
 type Response struct {
 	Template string
 
 	HTTPHost   string
+	HTTPPrefix string
 	Error      string
 	Backlink   string
 	User       string
@@ -43,7 +44,7 @@ type Response struct {
 	Transfers        []downloader.Transfer
 	TransfersPending []downloader.Transfer
 
-	Sort  string
+	Sort    string
 	Query string
 
 	Results []search.Result
@@ -88,7 +89,7 @@ var (
             </head>
             <body>
                 <h2 style="color: orangered;">ERROR</h2>
-                <h3><a href="/viewscreen/logs">Logs</a></h3>
+                <h3><a href="` + httpPrefix + `/logs">Logs</a></h3>
             </body>
         </html>
     `
@@ -103,6 +104,7 @@ func NewResponse(r *http.Request, ps httprouter.Params) *Response {
 		Request:    r,
 		User:       ps.ByName("user"),
 		HTTPHost:   httpHost,
+		HTTPPrefix: httpPrefix,
 		DiskInfo:   di,
 		FeedSecret: feedsecret.Get(),
 		Version:    version,

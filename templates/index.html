@@ -8,7 +8,7 @@
         </div>
     </h2>
 
-    <form class="ui form" action="/viewscreen/" method="GET">
+    <form class="ui form" action="{{$.HTTPPrefix}}/" method="GET">
         <div class="fields">
             <div class="eight wide field">
                 <input type="text" name="q" value="{{$.Query}}" placeholder="Filter" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
@@ -18,16 +18,16 @@
 
     <div class="ui secondary menu">
         <div class="header item">Sort by</div>
-        <a class="{{if eq $.Sort "time"}}active{{end}} item" href="/viewscreen/?q={{.Query}}&s=time">Time</a>
+        <a class="{{if eq $.Sort "time"}}active{{end}} item" href="{{$.HTTPPrefix}}/?q={{.Query}}&s=time">Time</a>
         <span>&middot;</span>
-        <a class="{{if ne $.Sort "time"}}active{{end}} item" href="/viewscreen/?q={{.Query}}&s=name">Name</a>
+        <a class="{{if ne $.Sort "time"}}active{{end}} item" href="{{$.HTTPPrefix}}/?q={{.Query}}&s=name">Name</a>
     </div>
 
     <div class="ui hidden divider"></div>
 
     {{if $.Query}}
         <div class="ui hidden divider"></div>
-        <a href="/viewscreen/" class="ui image label">{{$.Query}} <i class="delete icon"></i></a>
+        <a href="{{$.HTTPPrefix}}/" class="ui image label">{{$.Query}} <i class="delete icon"></i></a>
         <div class="ui hidden divider"></div>
     {{end}}
 
@@ -36,11 +36,11 @@
             {{range $dl := $.Library}}
                 <div class="column">
                     <div class="dlscard ui fluid card">
-                        <a class="image" href="/viewscreen/downloads/files/{{$dl.ID}}">
+                        <a class="image" href="{{$.HTTPPrefix}}/downloads/files/{{$dl.ID}}">
                             {{if $dl.Thumbnail}}
-                                <img src="/viewscreen/downloads/stream/{{$dl.ID}}/thumbnail.png">
+                                <img src="{{$.HTTPPrefix}}/downloads/stream/{{$dl.ID}}/thumbnail.png">
                             {{else}}
-                                <img class="notfound" src="/viewscreen/static/notfound.png">
+                                <img class="notfound" src="{{$.HTTPPrefix}}/static/i/notfound.png">
                             {{end}}
                         </a>
                         <div class="content">
@@ -57,22 +57,22 @@
         <div class="ui large message">
             <div class="header">You have no downloads</div>
             <p>
-                Need help? Visit the <a href="/viewscreen/help">help page</a> for more info.
+                Need help? Visit the <a href="{{$.HTTPPrefix}}/help">help page</a> for more info.
             </p>
         </div>
     {{end}}
             <!--tr>
                 <td class="nomobile center aligned one wide">
-                    <a href="/viewscreen/downloads/files/$dl.ID">
+                    <a href="{{$.HTTPPrefix}}/downloads/files/$dl.ID">
                         if $dl.Thumbnail
-                            <img class="thumbnail" src="/viewscreen/downloads/stream/$dl.ID/thumbnail.png">
+                            <img class="thumbnail" src="{{$.HTTPPrefix}}/downloads/stream/$dl.ID/thumbnail.png">
                         else
                             <i class="big folder icon"></i>
                         end
                     </a>
                 </td>
                 <td class="twelve wide">
-                    <a href="/viewscreen/downloads/files/$dl.ID">$dl.ID</a>
+                    <a href="{{$.HTTPPrefix}}/downloads/files/$dl.ID">$dl.ID</a>
                 </td>
                 <td class="right aligned three wide">
                     bytes $dl.Size
@@ -84,7 +84,7 @@
     <!--div class="ui one column grid">
         <div class="center aligned one column row">
             <div class="column">
-				<a class="ui mini basic icon button" rel="alternate" type="application/rss+xml" href="/viewscreen/podcast/{{$.FeedSecret}}" data-tooltip="Your private podcast URL (do not share)"><i class="podcast icon"></i></a>
+				<a class="ui mini basic icon button" rel="alternate" type="application/rss+xml" href="{{$.HTTPPrefix}}/podcast/{{$.FeedSecret}}" data-tooltip="Your private podcast URL (do not share)"><i class="podcast icon"></i></a>
             </div>
         </div>
     </div-->

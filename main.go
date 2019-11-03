@@ -132,7 +132,7 @@ func init() {
 	cli.StringVar(&backlink, "backlink", "", "backlink (optional)")
 	cli.StringVar(&httpAddr, "http-addr", ":80", "listen address")
 	cli.StringVar(&httpHost, "http-host", "", "HTTP host")
-	cli.StringVar(&httpPrefix, "http-prefix", "/viewscreen", "HTTP URL prefix (not supported yet)")
+	cli.StringVar(&httpPrefix, "http-prefix", "/viewscreen", "HTTP URL prefix")
 	cli.StringVar(&httpUsername, "http-username", "viewscreen", "HTTP basic auth username")
 	cli.StringVar(&torrentListenAddr, "torrent-addr", ":61337", "listen address for torrent client")
 	cli.StringVar(&reverseProxyAuthIP, "reverse-proxy-ip", "", "reverse proxy auth IP")
@@ -624,7 +624,7 @@ func feedPodcast(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 	p := podcast.New(title, baseurl, title, &updated, &updated)
 	p.AddAuthor(httpHost, "viewscreen@"+httpHost)
-	p.AddImage(baseurl + "/logo.png")
+	p.AddImage(baseurl + "/i/logo.png")
 
 	for _, dl := range dls {
 		// Find viewable files
@@ -830,7 +830,7 @@ func staticAsset(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 }
 
 func logo(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	serveAsset(w, r, "/logo.png")
+	serveAsset(w, r, "/i/logo.png")
 }
 
 func serveAsset(w http.ResponseWriter, r *http.Request, filename string) {
@@ -1100,9 +1100,9 @@ func main() {
 	}()
 	// TLS
 	tlsConfig := tls.Config{
-		GetCertificate: certmanager.GetCertificate,
-		NextProtos:     []string{"http/1.1"}, // TODO: investigate any HTTP 2 issues.
-		Rand:           rand.Reader,
+		GetCertificate:           certmanager.GetCertificate,
+		NextProtos:               []string{"http/1.1"}, // TODO: investigate any HTTP 2 issues.
+		Rand:                     rand.Reader,
 		PreferServerCipherSuites: true,
 		MinVersion:               tls.VersionTLS12,
 		CipherSuites: []uint16{

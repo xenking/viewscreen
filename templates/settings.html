@@ -4,7 +4,7 @@
     <h2 class="ui header">Settings</h2>
     <div class="ui hidden divider"></div>
 
-    <form class="ui large form" method="POST" action="/viewscreen/settings">
+    <form class="ui large form" method="POST" action="{{$.HTTPPrefix}}/settings">
         <div class="fields">
             <div class="field">
                 <label>Seed ratio</label>
@@ -25,7 +25,7 @@
         <div class="fields">
             <div class="field">
                 <label>Reset podcast secret URL</label>
-                <a class="confirm ui fluid red basic mini button" href="/viewscreen/feed/reset" data-prompt="Generate new private podcast URL?">Reset secret</a>
+                <a class="confirm ui fluid red basic mini button" href="{{$.HTTPPrefix}}/feed/reset" data-prompt="Generate new private podcast URL?">Reset secret</a>
             </div>
         </div>
 

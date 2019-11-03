@@ -5,15 +5,15 @@
             <div class="ui hidden divider"></div>
 
             <div class="ui right floated horizontal list">
-                <div class="disabled item" href="/viewscreen/">viewscreen Cloud {{$.Version}}</div>
+                <div class="disabled item" href="{{$.HTTPPrefix}}/">Viewscreen {{$.Version}}</div>
             </div>
 
             <div class="ui horizontal list">
                 <div class="item">&nbsp;</div>
             </div>
         </div>
-
-        <script>
+        <script src="{{$.HTTPPrefix}}/static/js/poller.js"></script>
+        <script src="{{$.HTTPPrefix}}/static/js/footer.js"></script>
             window.pollerJob = {};
             window.poller = function(target, url, delay) {
                 // Don't allow duplicate targets, so it's safe to call poller multiple times.

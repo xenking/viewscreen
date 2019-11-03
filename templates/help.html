@@ -85,7 +85,7 @@
             <div class="ui one column grid">
                 <div class="center aligned one column row">
                     <div class="column">
-                        <a href="/viewscreen/?tos=yes" class="ui huge blue button"><i class="checkmark icon"></i> Accept License &amp; Continue</a>
+                        <a href="{{$.HTTPPrefix}}/?tos=yes" class="ui huge blue button"><i class="checkmark icon"></i> Accept License &amp; Continue</a>
                     </div>
                 </div>
             </div>
@@ -97,7 +97,7 @@
             <div class="center aligned one column row">
                 <div class="column">
                     <video id="screencast" class="screencast ui bordered rounded image" controls="controls" preload="auto" loop="loop" muted="muted" autoplay="autoplay">
-                        <source src="/viewscreen/static/screencast1.mp4?updated=578923892">
+                        <source src="{{$.HTTPPrefix}}/static/i/screencast1.mp4?updated=578923892">
                     </video>
 
                 </div>
@@ -113,6 +113,10 @@
 
         <p>
             Copyright (c) 2017 Viewscreen Cloud
+        </p>
+
+        <p>
+            Copyright (c) 2019 xenking
         </p>
 
         <p>

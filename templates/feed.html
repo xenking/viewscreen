@@ -13,7 +13,7 @@
 
     <div class="ui small form">
         <div class="field">
-            <input class="readonly" value="https://{{$.HTTPHost}}/viewscreen/podcast/{{$.FeedSecret}}">
+            <input class="readonly" value="https://{{$.HTTPHost}}{{$.HTTPPrefix}}/podcast/{{$.FeedSecret}}">
         </div>
     </div>
 
@@ -22,7 +22,7 @@
     <div class="ui one column grid">
         <div class="center aligned one column row">
             <div class="column">
-				<a class="ui massive blue button" rel="alternate" type="application/rss+xml" href="/viewscreen/podcast/{{$.FeedSecret}}" data-tooltip="Your private podcast URL (do not share)"><i class="podcast icon"></i> Podcast feed</a>
+				<a class="ui massive blue button" rel="alternate" type="application/rss+xml" href="{{$.HTTPPrefix}}/podcast/{{$.FeedSecret}}" data-tooltip="Your private podcast URL (do not share)"><i class="podcast icon"></i> Podcast feed</a>
             </div>
         </div>
     </div>

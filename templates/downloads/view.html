@@ -7,9 +7,9 @@
 
 <div class="ui container">
     <div class="ui inverted breadcrumb">
-        <a class="section" href="/viewscreen/">Library</a>
-        <div class="divider"> / </div>
-        <a class="section" href="/viewscreen/downloads/files/{{$.Download.ID}}">{{$.Download.ID}}</a>
+        <a class="section" href="{{$.HTTPPrefix}}/">Library</a>
+        <div class="divider"> /</div>
+        <a class="section" href="{{$.HTTPPrefix}}/downloads/files/{{$.Download.ID}}">{{$.Download.ID}}</a>
     </div>
 
     <h4 class="breakup ui inverted header">{{$.File.ID}}</h4>
