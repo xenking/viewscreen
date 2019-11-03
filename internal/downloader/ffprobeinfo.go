@@ -1,19 +1,18 @@
 package downloader
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"os/exec"
 )
 
-func ffprobe(ctx context.Context, filename string) (*ffprobeInfo, error) {
+func Ffprobe(filename string) (*ffprobeInfo, error) {
 	exe, err := exec.LookPath("ffprobe")
 	if err != nil {
 		return nil, err
 	}
 
-	cmd := exec.CommandContext(ctx, exe,
+	cmd := exec.Command(exe,
 		"-i", filename,
 		"-v", "quiet",
 		"-print_format", "json",
@@ -35,7 +34,7 @@ func ffprobe(ctx context.Context, filename string) (*ffprobeInfo, error) {
 type ffprobeInfo struct {
 	Format struct {
 		BitRate        string  `json:"bit_rate"`
-		Duration       float64 `json:"duration"`
+		Duration       float64 `json:"duration,string"`
 		Filename       string  `json:"filename"`
 		FormatLongName string  `json:"format_long_name"`
 		FormatName     string  `json:"format_name"`

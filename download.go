@@ -129,6 +129,7 @@ func (dl Download) Files(thumbnails bool) []File {
 			return nil
 		}
 		if !thumbnails {
+			// TODO: Check player thumbnails and contact sheet
 			if strings.HasSuffix(info.Name(), "thumbnail.png") {
 				return nil
 			}

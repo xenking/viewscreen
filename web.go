@@ -199,7 +199,7 @@ func Auth(h httprouter.Handle, friends bool) httprouter.Handle {
 			http.NotFound(w, r)
 			return
 		}
-
+		// TODO: Add auth system from soundscape
 		// Auth Method: Friend DNS (only enabled on some routes).
 		if friends && r.FormValue("friend") != "" {
 			func() {

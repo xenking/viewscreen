@@ -75,8 +75,8 @@ func ListTransfersPending() []downloader.Transfer {
 	return dler.ListPending()
 }
 
-func StartTransfer(target string) error {
-	_, err := dler.Add(target)
+func StartTransfer(target string, opt *downloader.DownloadOptions) error {
+	_, err := dler.Add(target, opt)
 	return err
 }
 

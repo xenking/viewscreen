@@ -60,6 +60,39 @@
     });
 </script>
 <script type="text/javascript">
+    function setSaveForm(){
+        $('.ui.form.save')
+            .form({
+                inline: true,
+                fields: {
+                    name: {
+                        identifier: 'name',
+                        rules: [{
+                            type: 'empty',
+                            prompt: 'Please enter name for download'
+                        }]
+                    }
+                }
+            })
+            .api({
+                url: '{{$.HTTPPrefix}}/transfers/magnet',
+                method: 'POST',
+                serializeForm: true,
+                beforeSend: function (settings) {
+                    return settings
+                },
+                onSuccess: function (response) {
+                    console.log("sended");
+                    console.log(response);
+                },
+                onFailure: function (response) {
+                    console.log("failed to send");
+                    console.log(response);
+                }
+            });
+    }
+</script>
+<script type="text/javascript">
     $(document).ready(function () {
         $('.ui.form.search')
             .form({

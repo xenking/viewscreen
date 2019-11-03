@@ -401,7 +401,32 @@ func transferList(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 }
 
 func transferMagnet(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	if err := StartTransfer(r.FormValue("target")); err != nil {
+	opt := &downloader.DownloadOptions{
+		Name:      r.FormValue("name"),
+		Subsf:     r.FormValue("subsf"),
+		IsConvert: false,
+		IsSeeding: false,
+		IsSubs:    false,
+	}
+
+	isSub := r.FormValue("sub")
+	if isSub != "" {
+		opt.IsSubs = true
+	}
+
+	isConvert := r.FormValue("convert")
+	if isConvert != "" {
+		opt.IsConvert = true
+	}
+
+	isSeed := r.FormValue("seed")
+	if isSeed != "" {
+		opt.IsSeeding = true
+	}
+
+	target := r.FormValue("target")
+
+	if err := StartTransfer(target, opt); err != nil {
 		Error(w, err)
 		return
 	}
@@ -413,11 +438,12 @@ func transferStart(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 	if target == "" {
 		target = ps.ByName("target")
 	}
-	if err := StartTransfer(target); err != nil {
+	if err := StartTransfer(target, downloader.NewDefaultOptions()); err != nil {
 		Error(w, err)
 		return
 	}
-	Redirect(w, r, "/import")
+	//Redirect(w, r, "/import")
+	JSON(w, `{ status: "success" }`)
 }
 
 func transferCancel(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -425,7 +451,8 @@ func transferCancel(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 		Error(w, err)
 		return
 	}
-	Redirect(w, r, "/import")
+	//Redirect(w, r, "/import")
+	JSON(w, `{ status: "success" }`)
 }
 
 //
@@ -544,7 +571,7 @@ func friendDownload(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 		RawQuery: "friend=" + httpHost,
 	}
 
-	if err := StartTransfer(endpoint.String()); err != nil {
+	if err := StartTransfer(endpoint.String(), downloader.NewDefaultOptions()); err != nil {
 		Error(w, err)
 		return
 	}
@@ -1082,6 +1109,7 @@ func main() {
 	r.POST(Prefix("/transfers/magnet"), Log(Auth(transferMagnet, false)))
 
 	// Transcodings
+	// TODO: Transcode all handler
 	r.GET(Prefix("/transcode/start/:id/*file"), Log(Auth(transcodeStart, false)))
 	r.GET(Prefix("/transcode/cancel/:id/*file"), Log(Auth(transcodeCancel, false)))
 

@@ -42,9 +42,9 @@
     {{end}}
 
     {{if $t.Uploading}}
-        <a href="/viewscreen/transfers/cancel/{{$t.ID}}" class="ui bottom attached basic button" tabindex="0">Done</a>
+        <a href="{{$.HTTPPrefix}}/transfers/cancel/{{$t.ID}}" class="ui bottom attached basic button" tabindex="0">Done</a>
     {{else}}
-        <a href="/viewscreen/transfers/cancel/{{$t.ID}}" data-prompt="Cancel {{$t.String}}?" class="confirm ui bottom attached basic button" tabindex="0">Cancel</a>
+        <a href="{{$.HTTPPrefix}}/transfers/cancel/{{$t.ID}}" data-prompt="Cancel {{$t.String}}?" class="confirm ui bottom attached basic button" tabindex="0">Cancel</a>
     {{end}}
 
     <script>

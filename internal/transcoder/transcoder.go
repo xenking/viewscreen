@@ -1,9 +1,8 @@
 package transcoder
 
 import (
-	"encoding/binary"
 	"fmt"
-	"math"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -14,6 +13,7 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/xenking/viewscreen/internal/downloader"
 )
 
 type Transcoder struct {
@@ -174,30 +174,23 @@ func (t *Transcoder) Add(srcname string) error {
 func (t *Transcoder) transcode(srcname string) {
 	srcname, tmpname, dstname := t.filenames(srcname)
 
-	srcfi, err := os.Stat(srcname)
-	if err != nil {
-		log.Errorf("job %q: %s", srcname, err)
-		return
-	}
-
+	/*	srcfi, err := os.Stat(srcname)
+		if err != nil {
+			log.Errorf("job %q: %s", srcname, err)
+			return
+		}
+	*/
 	// Find ffmpeg
 	ffmpeg, err := exec.LookPath("ffmpeg")
 	if err != nil {
 		log.Error(err)
 		return
 	}
-	// Find ffprobe
-	ffprobe, err := exec.LookPath("ffprobe")
-	if err != nil {
-		log.Error(err)
-		return
-	}
-
 	cmd, err := exec.Command(ffmpeg,
 		"-y",
 		"-i", srcname,
 		"-codec:v", "libx264",
-		"-crf", "18",
+		"-crf", "17",
 		"-bf", "2",
 		"-flags", "+cgop",
 		"-pix_fmt", "yuv420p",
@@ -243,35 +236,22 @@ func (t *Transcoder) transcode(srcname string) {
 		return
 	}
 
-	// check that our new file is a reasonable size.
-	// TODO: ffprobe and check duration matches?
-	srclencmd := exec.Command(ffprobe,
-		"-v", "error",
-		"-show_entries", "format=duration",
-		"-of", "default=noprint_wrappers=1:nokey=1",
-		srcname,
-	)
-	srclen, err := srclencmd.CombinedOutput()
+	// Check our new file is the same size.
+
+	srcinfo, err := downloader.Ffprobe(srcname)
 	if err != nil {
-		log.Errorf("job ffprobe %q: %s", srcname, string(srclen))
+		log.Errorf("job %q: %s", srcname, err)
+		return
+	}
+	dstinfo, err := downloader.Ffprobe(dstname)
+	if err != nil {
+		log.Errorf("job %q: %s", dstname, err)
 		return
 	}
 
-	dstlencmd := exec.Command(ffprobe,
-		"-v", "error",
-		"-show_entries", "format=duration",
-		"-of", "default=noprint_wrappers=1:nokey=1",
-		dstname,
-	)
-	dstlen, err := dstlencmd.CombinedOutput()
-	if err != nil {
-		log.Errorf("job ffprobe %q: %s", srcname, string(dstlen))
-		return
-	}
-
-
-	if Float64frombytes(dstlen) != Float64frombytes(srclen) {
-		log.Errorf("job %q: transcoded is too small (%d vs %d); deleting.", srcname, Float64frombytes(dstlen),  Float64frombytes(srclen))
+	log.Debugf("transcode complete: src duration = %f, dst duration = %f", srcinfo.Format.Duration, dstinfo.Format.Duration)
+	if srcinfo.Format.Duration+0.01 > dstinfo.Format.Duration {
+		log.Errorf("job %q: transcoded is too small (%f vs %f); deleting.", srcname, srcinfo.Format.Duration, dstinfo.Format.Duration)
 		if err := os.Remove(dstname); err != nil {
 			log.Error(err)
 		}
@@ -293,10 +273,65 @@ func (t *Transcoder) transcode(srcname string) {
 		log.Errorf("job %q: %s", srcname, err)
 		return
 	}
+	if err := GenerateContactSheet(dstname); err != nil {
+		log.Errorf("job generate contact sheet failed: %s", dstname, err)
+		return
+	}
 }
 
-func Float64frombytes(bytes []byte) float64 {
-	bits := binary.LittleEndian.Uint64(bytes)
-	float := math.Float64frombits(bits)
-	return float
+func GenerateContactSheet(videofile string) error {
+	// Adding contact sheet
+	dstdir := filepath.Dir(videofile)
+	thumbdir := filepath.Join(dstdir, "thumb", videofile)
+	thumbfile := filepath.Join(dstdir, "thumb", videofile, "thumbnail.jpg")
+	if err := downloader.EnsureDir(thumbdir); err != nil {
+		return fmt.Errorf("mkdir failed: %s (%s)", thumbdir, err)
+	}
+	if err := contactsheet(videofile, thumbdir); err != nil {
+		return fmt.Errorf("contact sheet failed: %s (%s)", videofile, err)
+	}
+	// Adding big preview thumbnail
+	if err := downloader.Ffthumb(videofile, thumbfile, "thumbnail,fps=1/6", true); err != nil {
+		return fmt.Errorf("ffthumb failed: %s (%s)", videofile, err)
+	}
+	return nil
+}
+
+func contactsheet(videofile, thumbdir string) error {
+	ffmpeg, err := exec.LookPath("ffmpeg")
+	if err != nil {
+		return err
+	}
+
+	montage, err := exec.LookPath("montage")
+	if err != nil {
+		return err
+	}
+
+	tmpdir, err := ioutil.TempDir(filepath.Dir(thumbdir), "frames")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(tmpdir)
+	// Create temp frames.
+	output, err := exec.Command(ffmpeg,
+		"-y",
+		"-i", videofile,
+		"-f", "image2", "-vsync", "cfr", "-an", "-sn", "-vf", "scale=108:60,fps=1/10", "-b:v", "2000", "-bt", "20M",
+		filepath.Join(tmpdir, "frame-%03d.jpeg"),
+	).CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("ffmpeg failed: %s (%s)", string(output), err)
+	}
+
+	output, err = exec.Command(montage,
+		filepath.Join(tmpdir, "frame-*.jpeg"),
+		"-scenes", "1", "-background", "black", "-quality", "80", "-geometry", "+0+0", "-tile", "5x5",
+		filepath.Join(thumbdir, "cs-%d.jpg"),
+	).CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("montage failed: %s (%s)", string(output), err)
+	}
+
+	return nil
 }
