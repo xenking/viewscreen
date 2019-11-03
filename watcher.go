@@ -12,6 +12,7 @@ import (
 )
 
 var ErrDownloadNotFound = errors.New("download not found")
+var ErrResourceIsBusy = errors.New("resource is busy")
 var ErrFileNotFound = errors.New("download file not found")
 var ErrFriendNotFound = errors.New("friend not found")
 

@@ -1,5 +1,9 @@
 {{template "header.html" .}}
 
+<script src="{{$.HTTPPrefix}}/static/js/jquery.copyCss.js"></script>
+<script src="{{$.HTTPPrefix}}/static/js/jquery.styleimportant.js"></script>
+<script src="{{$.HTTPPrefix}}/static/js/jquery.scrollTo.min.js"></script>
+<script src="{{$.HTTPPrefix}}/static/js/jquery.slider.js"></script>
 <div class="ui container">
     <h2 class="ui header">
         Library
@@ -44,11 +48,16 @@
                             {{end}}
                         </a>
                         <div class="content">
-                            <a class="breakup header" href="/viewscreen/downloads/files/{{$dl.ID}}">{{$dl.ID}}</a>
+                            <a class="breakup header editable" href="{{$.HTTPPrefix}}/downloads/files/{{$dl.ID}}">{{$dl.ID}}</a>
                             <div class="meta">{{bytes $dl.Size}}</div>
                         </div>
-                        <button class="{{if not $dl.Shared}}hide{{end}} toggler ui large green button" title="Unshare" data-action="/viewscreen/downloads/unshare/{{$dl.ID}}"><i class="checkmark box icon"></i>Shared</button>
-                        <button class="{{if $dl.Shared}}hide{{end}} toggler ui large green inverted button" title="Share" data-action="/viewscreen/downloads/share/{{$dl.ID}}"><i class="square outline icon"></i>Share&nbsp;</button>
+                        <div class="ui green inverted dls pagination menu">
+                            <a href="#" class="item dls scroll left" style="display: none;"><i class="left chevron icon"></i></a>
+                            {{range $eps := $dl.GetEpisodes}}
+                                <a href="{{$.HTTPPrefix}}/downloads/view/{{$dl.ID}}/{{$eps.ID}}" class="item">{{$eps.Number}}</a>
+                            {{end}}
+                            <a href="#" class="item dls scroll right" style="display: none;"><i class="right chevron icon"></i></a>
+                        </div>
                     </div>
                 </div>
             {{end}}
@@ -90,6 +99,71 @@
     </div-->
 
 </div>
+<script type="text/javascript">
+    $(document).ready(function () {
+        $(".ui.dls.menu").each(function () {
+            let menu = this;
 
+            $(".scroll", this).each(function () {
+                let el = this;
+                $(this).slider(() => buttonScroll(el, menu), 250)
+            })
+        });
+    });
+</script>
+<script type="text/javascript">
+    $(document).ready(function () {
+        $('.editable').click(function (e) {
+            e.preventDefault();
+            let el = $(this);
+            if (el.hasClass('clicked')) {
+                el.removeClass('clicked');
 
+                let tmpinput = $("<input>", {
+                    "type": "text",
+                });
+                let prev = el.clone(true);
+                tmpinput.val(el.text());
+
+                $(tmpinput).copyCSS(this, ['font-weight', 'font-size', 'padding', 'margin', 'width']);
+                tmpinput.style('border', 'none', 'important');
+                console.log("{{$.HTTPPrefix}}");
+
+                tmpinput.focusout(function () {
+                    let tmpel = $(this);
+                    if (tmpel.val()) {
+                        $.ajax({
+                            type: "POST",
+                            url: "{{$.HTTPPrefix}}/downloads/rename/dir",
+                            data: ({
+                                id: prev.text(),
+                                newid: tmpel.val()
+                            }),
+                            success: function (data) {
+                                console.log('success');
+                                prev.text(tmpel.val());
+                                console.log(data)
+                            },
+                            failure: function (data) {
+                                console.log('failure');
+                                console.log(data)
+                            }
+                        });
+                    }
+                    tmpel.replaceWith(prev);
+                    tmpinput.remove();
+                });
+                $(this).replaceWith(tmpinput);
+                tmpinput.focus();i
+            } else {
+                el.addClass('clicked');
+                setTimeout(function () {
+                    if (el.hasClass('clicked')) {
+                        window.location.replace(el.attr('href'));
+                    }
+                }, 500);
+            }
+        });
+    });
+</script>
 {{template "footer.html" .}}

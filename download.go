@@ -73,6 +73,22 @@ func (dl Download) Unshare() error {
 	return os.Remove(dl.Sharefile())
 }
 
+func (dl Download) Rename(id string) error {
+	// TODO: Recursive rename all files with the same dl.ID to new id
+	// dl.Files()
+	oldpath := filepath.Join(downloadDir, dl.ID)
+	oldpath = filepath.Clean(oldpath)
+	if oldpath == downloadDir {
+		logger.Debugf("old path %q download %q", oldpath, dl.ID)
+	}
+	newpath := filepath.Join(downloadDir, id)
+	newpath = filepath.Clean(newpath)
+	if newpath == downloadDir {
+		logger.Debugf("new path %q download %q", newpath, id)
+	}
+	return os.Rename(oldpath, newpath)
+}
+
 func (dl Download) Path() string {
 	path := filepath.Join(downloadDir, dl.ID)
 	path = filepath.Clean(path)

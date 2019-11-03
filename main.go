@@ -332,6 +332,43 @@ func dlUnshare(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	JSON(w, `{ status: "success" }`)
 }
 
+func dlRenameDir(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	if tcer.Busy() || dler.Busy() {
+		Error(w, ErrResourceIsBusy)
+		return
+	}
+	id := r.FormValue("id")
+	newid := r.FormValue("newid")
+	dl, err := FindDownload(id)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	dl.Rename(newid)
+	JSON(w, `{ status: "success" }`)
+}
+
+func dlRenameFile(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	if tcer.Busy() || dler.Busy() {
+		Error(w, ErrResourceIsBusy)
+		return
+	}
+	id := ps.ByName("id")
+	dl, err := FindDownload(id)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	newname := r.FormValue("newname")
+	file, err := dl.FindFile(r.FormValue("file"))
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	file.Rename(newname)
+	JSON(w, `{ status: "success" }`)
+}
+
 //
 // Transfers
 //
@@ -996,6 +1033,8 @@ func main() {
 	r.GET(Prefix("/downloads/remove/:id"), Log(Auth(dlRemove, false)))
 	r.POST(Prefix("/downloads/share/:id"), Log(Auth(dlShare, false)))
 	r.POST(Prefix("/downloads/unshare/:id"), Log(Auth(dlUnshare, false)))
+	r.POST(Prefix("/downloads/rename/dir"), Log(Auth(dlRenameDir, false)))
+	r.POST(Prefix("/downloads/rename/file/:id"), Log(Auth(dlRenameFile, false)))
 
 	// Transfers
 	r.GET(Prefix("/transfers/list"), Auth(transferList, false))

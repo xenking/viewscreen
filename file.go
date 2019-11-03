@@ -55,3 +55,12 @@ func (f File) Thumbnail() bool {
 	_, err := os.Stat(f.Path + ".thumbnail.png")
 	return err == nil
 }
+
+func (f File) Rename(name string) error {
+	oldpath := filepath.Clean(f.Path)
+	newpath := filepath.Base(f.Path)
+	newpath = filepath.Join(newpath, name)
+	newpath = filepath.Clean(newpath)
+
+	return os.Rename(oldpath, newpath)
+}
