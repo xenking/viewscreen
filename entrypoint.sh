@@ -22,9 +22,16 @@ if [ -z "${VIEWSCREEN_TORRENT_ADDR-}" ] ; then
     export VIEWSCREEN_TORRENT_ADDR=":61337"
 fi
 
+if [ -z "${VIEWSCREEN_HTTP_PREFIX-}" ] ; then
+    export VIEWSCREEN_HTTP_PREFIX="/app"
+fi
 
 if [ -z "${VIEWSCREEN_METADATA-}" ] ; then
     export VIEWSCREEN_METADATA="false"
+fi
+
+if [ -z "${DEBUG-}" ] ; then
+    export DEBUG="false"
 fi
 
 if [ -z "${VIEWSCREEN_HTTP_USER-}" ] ; then
@@ -34,8 +41,11 @@ fi
 exec /usr/bin/viewscreen \
     "--http-host=${VIEWSCREEN_HTTP_HOST}" \
     "--http-addr=${VIEWSCREEN_HTTP_ADDR}" \
+    "--http-prefix=${VIEWSCREEN_HTTP_PREFIX}" \
+    "--http-username=${VIEWSCREEN_HTTP_USER}" \
     "--backlink=${VIEWSCREEN_BACKLINK}" \
     "--letsencrypt=${VIEWSCREEN_LETSENCRYPT}" \
     "--torrent-addr=${VIEWSCREEN_TORRENT_ADDR}" \
     "--metadata=${VIEWSCREEN_METADATA}" \
     "--http-username=${VIEWSCREEN_HTTP_USER}" \
+    "--debug=${DEBUG}"
