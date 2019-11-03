@@ -1,0 +1,45 @@
+.video-js .vjs-control-bar {
+    background-color: rgba(0, 0, 0, .45) !important;
+}
+
+.video-holder .vjs-big-play-button {
+    left: 50%;
+    width: 100px;
+    margin-left: -50px;
+    height: 80px;
+    top: 50%;
+    margin-top: -40px
+}
+
+.video-js .icon-chevron-right,
+.video-js .icon-chevron-left,
+.video-js .icon-image {
+    width: 2em !important;
+    height: auto;
+    font-size: 2em;
+    cursor: pointer;
+}
+
+.vjs-big-play-button {
+    top: 50% !important;
+    left: 50% !important;
+    margin-left: -1em !important;
+    margin-top: -1em !important;
+    width: 2em !important;
+    height: 2em !important;
+    line-height: 2em !important;
+    border: none !important;
+    border-radius: 50% !important;
+    font-size: 3.5em !important;
+    background-color: rgba(0, 0, 0, .45) !important;
+    color: #fff !important;
+    -webkit-transition: border-color .4s, outline .4s, background-color .4s;
+    -moz-transition: border-color .4s, outline .4s, background-color .4s;
+    -ms-transition: border-color .4s, outline .4s, background-color .4s;
+    -o-transition: border-color .4s, outline .4s, background-color .4s;
+    transition: border-color .4s, outline .4s, background-color .4s !important;
+}
+
+.vjs-big-play-button:active, .vjs-big-play-button:focus, .vjs-menu-button-popup .vjs-menu .vjs-menu-item.vjs-selected, .vjs-play-progress, .vjs-volume-level, .vjs-big-play-button:active, .vjs-big-play-button:hover {
+    background-color: #2185D0 !important;
+}

@@ -12,6 +12,11 @@ type Download struct {
 	Created time.Time
 }
 
+type Episode struct {
+	ID     string
+	Number int
+}
+
 func (dl Download) Thumbnailfile() string {
 	return filepath.Join(dl.Path(), "thumbnail.png")
 }
@@ -129,6 +134,75 @@ func (dl Download) Files(thumbnails bool) []File {
 		return nil
 	})
 	return files
+}
+
+func (dl Download) GetEpisodes() ([]Episode, error) {
+	var episodes []Episode
+	num := 1
+	err := filepath.Walk(dl.Path(), func(path string, fi os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !!fi.IsDir() {
+			return nil
+		}
+		if dl.Path() == filepath.Dir(path) {
+			ext := strings.TrimPrefix(filepath.Ext(fi.Name()), ".")
+			switch ext {
+			case "mp4", "m4v", "webm":
+				episodes = append(episodes, Episode{
+					ID:     fi.Name(),
+					Number: num,
+				})
+				num += 1
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return episodes, nil
+}
+
+func (dl Download) GetCurrentEpisode(current string) int {
+	eps, err := dl.GetEpisodes()
+	if err != nil {
+		return 0
+	}
+
+	for i := range eps {
+		if eps[i].ID == current {
+			return eps[i].Number - 1
+		}
+	}
+	return 0
+}
+
+func (dl Download) GetFonts() []string {
+	var fonts []string
+	fontsdir := filepath.Join(dl.Path(), "subs", "fonts")
+	err := filepath.Walk(fontsdir, func(path string, fi os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !!fi.IsDir() {
+			return nil
+		}
+		ext := strings.TrimPrefix(filepath.Ext(fi.Name()), ".")
+		if ext == "ttf" {
+			fonts = append(fonts, fi.Name())
+		}
+		return nil
+	})
+	if err != nil {
+		return nil
+	}
+	return fonts
+}
+
+func (ep Episode) Name() string {
+	return strings.TrimSuffix(ep.ID, filepath.Ext(ep.ID))
 }
 
 func (dl Download) FindFile(id string) (File, error) {

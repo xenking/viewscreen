@@ -12,11 +12,10 @@
         <a class="section" href="{{$.HTTPPrefix}}/downloads/files/{{$.Download.ID}}">{{$.Download.ID}}</a>
     </div>
 
-    <h4 class="breakup ui inverted header">{{$.File.ID}}</h4>
+    <!--h4 class="breakup ui inverted header">{{$.File.ID}}</h4-->
+    <div class="ui hidden divider"></div>
 
-    <video class="video-player" controls="controls" preload="auto">
-        <source src="/viewscreen/downloads/stream/{{$.Download.ID}}/{{$.File.ID}}">
-    </video>
+    <video class="video-player video-js vjs-fill vjs-tech"></video>
 
     <div class="ui hidden divider"></div>
 
@@ -25,13 +24,9 @@
             <div class="right floated right aligned column">
 
                 <div class="ui small inverted basic buttons">
-                    <a href="/viewscreen/downloads/save/{{$.Download.ID}}/{{$.File.ID}}" class="ui icon button">
+                    <a href="{{$.HTTPPrefix}}/downloads/save/{{$.Download.ID}}/{{$.File.ID}}" class="ui icon button">
                         <i class="download icon"></i>
                         Download ({{bytes $.File.Info.Size}})
-                    </a>
-                    <a target="_blank" href="/viewscreen/downloads/stream/{{$.Download.ID}}/{{$.File.ID}}" class="ui icon button">
-                        <i class="external square icon"></i>
-                        Pop-out
                     </a>
                 </div>
 
@@ -40,6 +35,50 @@
 
     </div>
 </div>
+<link href="{{$.HTTPPrefix}}/static/css/video-js.min.css" rel="stylesheet">
+<link href="{{$.HTTPPrefix}}/static/css/controlspreview.min.css" rel="stylesheet">
+<link href="{{$.HTTPPrefix}}/static/css/videojs-dock.css" rel="stylesheet">
+<link href="{{$.HTTPPrefix}}/static/css/player.css" rel="stylesheet">
 
+<script src="{{$.HTTPPrefix}}/static/js/video.min.js"></script>
+<script src="{{$.HTTPPrefix}}/static/js/controlspreview-7.3.0.js"></script>
+<script src="{{$.HTTPPrefix}}/static/js/videojs-playlist.min.js"></script>
+<script src="{{$.HTTPPrefix}}/static/js/videojs-dock.min.js"></script>
+<script src="{{$.HTTPPrefix}}/static/js/videojs-hotkeys.min.js"></script>
+<script src="{{$.HTTPPrefix}}/static/subtitles/subtitles-octopus.js"></script>
+<script src="{{$.HTTPPrefix}}/static/js/player.js"></script>
+<script type="text/javascript">
+    $(document).ready(function () {
+        let videoList = [
+            {{range $eps := $.Download.GetEpisodes}}
+            {
+                title: "{{$eps.ID}}",
+                framesurl: "{{$.HTTPPrefix}}/downloads/stream/{{$.Download.ID}}/thumb/{{$eps.ID}}/cs-[index].jpg",
+                sources: [{
+                    type: "video/mp4",
+                    src: "{{$.HTTPPrefix}}/downloads/stream/{{$.Download.ID}}/{{$eps.ID}}"
+                }],
+                poster: "{{$.HTTPPrefix}}/downloads/stream/{{$.Download.ID}}/thumb/{{$eps.ID}}/thumbnail.png",
+                subfile: "{{$.HTTPPrefix}}/downloads/stream/{{$.Download.ID}}/subs/{{$eps.Name}}.ass",
+            },
+            {{end}}
+        ];
+        player.playlist(videoList, {{$.Download.GetCurrentEpisode $.File.ID}});
+        player.playlist.autoadvance(0);
+
+        let subtitlesOctopusOptions = {
+            video: document.querySelector('.video-player'),
+            subUrl: videoList[{{$.Download.GetCurrentEpisode $.File.ID}}].subfile,
+            fonts: [
+                "{{range $font := $.Download.GetFonts}}{{$font}}{{end}}",
+            ],
+            workerUrl: "{{$.HTTPPrefix}}/static/subtitles/subtitles-octopus-worker.js"
+        };
+        let subtitlesOctopus = new SubtitlesOctopus(subtitlesOctopusOptions);
+        player.on('playlistitem', function (event, video) {
+            subtitlesOctopus.setTrackByUrl(video.subfile);
+        });
+    });
+</script>
 {{template "footer.html" .}}
 
