@@ -45,7 +45,10 @@ type Response struct {
 	TransfersPending []downloader.Transfer
 
 	Sort    string
-	Query string
+	Query   string
+	History *StringSet
+	Page    int
+	Pages   []int
 
 	Results []search.Result
 
@@ -110,6 +113,7 @@ func NewResponse(r *http.Request, ps httprouter.Params) *Response {
 		Version:    version,
 		Backlink:   backlink,
 		Config:     config,
+		History:    history,
 	}
 }
 
@@ -164,7 +168,7 @@ func HTML(w http.ResponseWriter, target string, data interface{}) {
 			return
 		}
 	}
-
+	// TODO: sort off html serve or replace router
 	w.Header().Set("Content-Type", "text/html")
 	if err := t.Execute(w, data); err != nil {
 		Error(w, err)

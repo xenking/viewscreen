@@ -1,0 +1,116 @@
+{{if $.Query}}
+
+    {{if $.Results}}
+        <table class="ui striped sortable celled compact unstackable selectable table">
+            <thead>
+            <tr class="center aligned">
+                <th>Title</th>
+                <th>Size</th>
+                <th class="collapsing">S\L</th>
+                <th class="collapsing mobile hidden">Date</th>
+
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            {{range $result := $.Results}}
+                {{$dlexists := dlexists $result.Title}}
+                <tr>
+                    <td class="title">
+                        {{$result.Title}}
+                    </td>
+                    <td class="center aligned">{{bytes $result.Size}}</td>
+                    <td class="seed center aligned">
+                        <i  {{if lt $result.Seeders 4}}class="red circle icon"
+                            {{else if lt $result.Seeders 10}}class="yellow circle icon"
+                            {{else}}class="green circle icon"{{end}}></i>
+                        <div class="ui popup top left transition hidden">
+                            <div class="ui two column divided center aligned compact grid">
+                                <div class="ui attached compact positive message column">Seed:<br>{{$result.Seeders}}</div>
+                                <div class="ui attached negative message column ">Leech:<br>{{$result.Leechers}}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="center aligned collapsing mobile hidden">{{$result.FormattedCreatedDate}}</td>
+                    <td class="right aligned collapsing">
+                        <button class="hide downloading ui right floated blue elastic loading button" disabled>
+                            <div class="mobile hidden">Download</div>
+                            <div class="mobile only">D</div>
+                        </button>
+                        <button class="{{if $dlexists }}hide{{end}} ui right floated blue button download" data-action="{{$.HTTPPrefix}}/transfers/magnet" data-key="target" data-value="{{$result.Magnet}}">
+                            <div class="mobile hidden">Download</div>
+                            <div class="mobile only">D</div>
+                        </button></td>
+                </tr>
+            {{end}}
+            </tbody>
+            <tfoot>
+            <tr class="center aligned">
+                <th colspan="5">
+                    <div class="ui inverted pagination results fluid menu">
+                        <a href="#" class="item result scroll left"><i class="left chevron icon"></i></a>
+                        {{range $page := $.Pages}}
+                            <a href="#" class="{{if eq $page $.Page}}active{{end}} item">{{$page}}</a>
+                        {{end}}
+                        <a href="#" class="item result scroll right"><i class="right chevron icon"></i></a>
+                    </div>
+                </th>
+            </tr>
+            </tfoot>
+        </table>
+        <div class="ui modal download">
+            <div class="header">
+                Save As...
+            </div>
+            <form class="ui form save" method="post">
+                <div class="ui segment">
+                    <div class="field">
+                        <label>New name</label>
+                        <div class="ui left input">
+                            <input type="text" id="name" name="name" placeholder="Name to be displayed">
+                        </div>
+                    </div>
+                    <div class="field subs" style="display: none;">
+                        <label>Sub folder</label>
+                        <div class="ui left input hidden">
+                            <input type="text" id="subsf" name="subsf" placeholder="/SUB/">
+                        </div>
+                    </div>
+                    <div class="inline field">
+                        <div class="ui toggle checkbox subs">
+                            <label>Auto-detect sub folder</label>
+                            <input type="checkbox" id="subs" name="subs" tabindex="0" class="hidden" checked="checked">
+                        </div>
+                    </div>
+                    <div class="inline field">
+                        <div class="ui toggle checkbox">
+                            <label>Auto-convert to MP4</label>
+                            <input type="checkbox" id="convert" name="convert" tabindex="0" class="hidden" checked="checked">
+                        </div>
+                    </div>
+                    <div class="inline field">
+                        <div class="ui toggle checkbox">
+                            <label>Seed</label>
+                            <input type="checkbox" id="seed" name="seed" tabindex="0" class="hidden">
+                        </div>
+                    </div>
+                    <input type="hidden" id="target" name="target" class="hidden">
+                </div>
+            </form>
+            <div class="actions">
+                <div class="ui red deny clear button">Cancel</div>
+                <div class="ui positive labeled icon button "> <i class="checkmark icon"></i>
+                    Start
+                </div>
+            </div>
+        </div>
+    {{else}}
+        <div class="ui center aligned clearing segment">
+            <div class="ui hidden divider"></div>
+            <h4 class="ui center aligned grey header">
+                No results for &quot;{{.Query}}&quot;
+            </h4>
+            <div class="ui hidden divider"></div>
+        </div>
+    {{end}}
+{{end}}

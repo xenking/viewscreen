@@ -8,80 +8,101 @@
     <h2 class="ui dividing header">
         Search
         {{if $.Results}}
-        <div class="sub header">
-            {{len $.Results}} results
-        </div>
+            <div class="sub header">
+                {{len $.Results}} results
+            </div>
         {{end}}
     </h2>
+    {{if $.History}}
+        <div class="ui small text history menu">
+            <span class="header item">Last searches</span>
+            {{if gt $.History.Size 0}}
+                {{range $history := $.History.Slice}}
+                    <a href="#" class="item" data-history="{{$history}}">&quot;{{$history}}&quot;</a>
+                {{end}}
+            {{end}}
+        </div>
+    {{end}}
 
-    <div class="ui small text menu">
-        <span class="header item">Saved searches</span>
-        {{if eq $.Query "2013" "2012" "2011"}}
-            <a href="/viewscreen/import?q=2014" class="{{if eq $.Query "2014"}}active{{end}} item">&quot;2014&quot;</a>
-            <a href="/viewscreen/import?q=2013" class="{{if eq $.Query "2013"}}active{{end}} item">&quot;2013&quot;</a>
-            <a href="/viewscreen/import?q=2012" class="{{if eq $.Query "2012"}}active{{end}} item">&quot;2012&quot;</a>
-            <a href="/viewscreen/import?q=2011" class="{{if eq $.Query "2011"}}active{{end}} item">&quot;2011&quot;</a>
-            <a href="/viewscreen/import?q=2010" class="{{if eq $.Query "2010"}}active{{end}} item">&quot;2010&quot;</a>
-        {{else}}
-            <a href="/viewscreen/import?q=2017" class="{{if eq $.Query "2017"}}active{{end}} item">&quot;2017&quot;</a>
-            <a href="/viewscreen/import?q=2016" class="{{if eq $.Query "2016"}}active{{end}} item">&quot;2016&quot;</a>
-            <a href="/viewscreen/import?q=2015" class="{{if eq $.Query "2015"}}active{{end}} item">&quot;2015&quot;</a>
-            <a href="/viewscreen/import?q=2014" class="{{if eq $.Query "2014"}}active{{end}} item">&quot;2014&quot;</a>
-            <a href="/viewscreen/import?q=2013" class="{{if eq $.Query "2013"}}active{{end}} item">&quot;2013&quot;</a>
-        {{end}}
-    </div>
-    <div class="ui hidden divider"></div>
-
-    <form class="ui large form" method="GET" action="/viewscreen/import">
+    <form class="ui large form search">
         <div class="field">
             <div class="ui action input">
-                <input type="text" name="q" value="{{$.Query}}" placeholder="Enter a search query or torrent link" {{if not $.Results}}autofocus="autofocus"{{end}} autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-                <button type="submit" class="ui primary button">Search</button>
+                <input type="text" id='query' name="query" placeholder="Enter a search query or torrent link" {{if not $.Results}}autofocus="autofocus"{{end}} autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                <input type="hidden" id="tab" name="tab" class="hidden" value="rutracker">
+                <input type="hidden" id="page" name="page" class="hidden" value="1">
+                <button type="submit" class="ui blue primary search button">Search</button>
             </div>
         </div>
     </form>
 
-
-	{{if $.Query}}
-        <!--a href="/viewscreen/import" class="ui right floated button"><i class="delete icon"></i>{{$.Query}}</a-->
-        <!--div class="ui hidden clearing divider"></div-->
-
-        {{if $.Results}}
-            <table class="ui large striped single line fixed selectable table">
-                <tbody>
-                {{range $result := $.Results}}
-                    {{$dlexists := dlexists $result.Title}}
-                    <tr>
-                        <td>
-                            <i title="seeders: {{$result.Seeders}} leechers: {{$result.Leechers}}" {{if lt $result.Seeders 10}}class="red circle icon"{{else if lt $result.Seeders 20}}class="yellow circle icon"{{else}}class="green circle icon"{{end}}></i>{{$result.Title}}
-                        </td>
-                        <td>
-                            <button class="{{if not $dlexists}}hide{{end}} toggler ui right floated blue button" disabled>Download {{bytes $result.Size}}</button>
-                            <button class="{{if $dlexists }}hide{{end}} toggler ui right floated blue button" data-action="/viewscreen/transfers/magnet" data-key="target" data-value="{{$result.Magnet}}">Download {{bytes $result.Size}}</a>
-                        </td>
-                    </tr>
-                {{end}}
-                </tbody>
-            </table>
-        {{else}}
-            <div class="ui center aligned clearing segment">
-                <div class="ui hidden divider"></div>
-                <h4 class="ui center aligned grey header">
-                    No results for &quot;{{.Query}}&quot;
-                </h4>
-                <div class="ui hidden divider"></div>
-            </div>
-        {{end}}
-    {{end}}
+    <div class="tracker menu" style="display: none">
+        <div class="ui pointing secondary menu">
+            <a class="red item active" data-tab="rutracker">Rutracker</a>
+            <a class="blue item" data-tab="tokiotosho">TokioTosho</a>
+            <a class="green item" data-tab="piratebay">PirateBay</a>
+        </div>
+        <div class="ui tab active" data-tab="rutracker"></div>
+        <div class="ui tab" data-tab="tokiotosho"></div>
+        <div class="ui tab" data-tab="piratebay"></div>
+    </div>
 
 </div>
 
-<script>
-    $(document).ready(function() {
+<script src="{{$.HTTPPrefix}}/static/js/jquery.serialize-object.min.js"></script>
+<script src="{{$.HTTPPrefix}}/static/js/jquery.tablesort.js"></script>
+<script src="{{$.HTTPPrefix}}/static/js/jquery.scrollTo.min.js"></script>
+<script src="{{$.HTTPPrefix}}/static/js/jquery.slider.js"></script>
+<script src="{{$.HTTPPrefix}}/static/js/import.js"></script>
+<script type="text/javascript">
+    $(document).ready(function () {
         // Transfers should be polled immediately.
-        poller('#transfers', '/viewscreen/transfers/list', 2000);
+        poller('#transfers', '{{$.HTTPPrefix}}/transfers/list', 2000);
     });
 </script>
+<script type="text/javascript">
+    $(document).ready(function () {
+        $('.ui.form.search')
+            .form({
+                inline: true,
+                fields: {
+                    name: {
+                        identifier: 'query',
+                        rules: [{
+                            type: 'empty',
+                            prompt: 'Please enter search query'
+                        }]
+                    }
+                }
+            })
+            .api({
+                loadingDuration: 800,
+                url: "{{$.HTTPPrefix}}/import",
+                method: 'POST',
+                stateContext: 'button.search',
+                dataType: 'html',
+                serializeForm: true,
+                beforeSend: function(settings) {
+                    settings.data.query = settings.data.query.replace(/[^一-龠ぁ-ゔァ-ヴーン！：／a-zA-Z0-9а-я\s\S\wａ-ｚＡ-Ｚ０-９々〆〤]/gui, '');
+                    if (JSON.stringify(window.oldquery) === JSON.stringify(settings.data)) return false;
+                    window.oldquery = settings.data;
+                    addHistory(settings.data.query);
+                    return settings;
+                },
+                onSuccess: function (response) {
+                    let activeTab = $(".ui.tab.active[data-tab]");
+                    activeTab.html(response);
+                    $(window).trigger('resultsComplete');
+                    $('.tracker.menu').show();
 
+                },
+                onFailure: function (response) {
+                    console.log("failure");
+                    console.log(response);
+                    $('.tracker.menu').hide();
+                    window.oldquery = null;
+                }
+            });
+    });
+</script>
 {{template "footer.html" .}}
 

@@ -20,6 +20,45 @@ type DiskInfo struct {
 	used int64
 }
 
+
+type StringSet struct {
+	_set map[string]bool
+}
+
+func NewStringSet() *StringSet {
+	return &StringSet{make(map[string]bool,)}
+}
+
+func (set *StringSet) Add(s string) bool {
+	_, found := set._set[s]
+	set._set[s] = true
+	return !found
+}
+
+func (set *StringSet) Contains(s string) bool {
+	_, found := set._set[s]
+	return found
+}
+
+func (set *StringSet) Slice() []string {
+	arr := make([]string, len(set._set))
+	for k := range set._set {
+		arr = append(arr, k)
+	}
+	if arr[0] == ""{
+		arr = arr[:0]
+	}
+	return arr
+}
+
+func (set *StringSet) remove(s string) {
+	delete(set._set, s)
+}
+
+func (set *StringSet) Size() int {
+	return len(set._set)
+}
+
 func (d *DiskInfo) Total() int64   { return d.free + d.used }
 func (d *DiskInfo) TotalMB() int64 { return d.Total() / 1024 / 1024 }
 func (d *DiskInfo) TotalGB() int64 { return d.TotalMB() / 1024 }

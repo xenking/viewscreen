@@ -38,6 +38,14 @@ if [ -z "${VIEWSCREEN_HTTP_USER-}" ] ; then
     export VIEWSCREEN_HTTP_USER="viewscreen"
 fi
 
+if [ -z "${VIEWSCREEN_RUTRACKER_USER-}" ] ; then
+    export VIEWSCREEN_RUTRACKER_USER="none"
+fi
+
+if [ -z "${VIEWSCREEN_RUTRACKER_PASS-}" ] ; then
+    export VIEWSCREEN_RUTRACKER_PASS="none"
+fi
+
 exec /usr/bin/viewscreen \
     "--http-host=${VIEWSCREEN_HTTP_HOST}" \
     "--http-addr=${VIEWSCREEN_HTTP_ADDR}" \
@@ -47,5 +55,6 @@ exec /usr/bin/viewscreen \
     "--letsencrypt=${VIEWSCREEN_LETSENCRYPT}" \
     "--torrent-addr=${VIEWSCREEN_TORRENT_ADDR}" \
     "--metadata=${VIEWSCREEN_METADATA}" \
-    "--http-username=${VIEWSCREEN_HTTP_USER}" \
+    "--rutracker-user=${VIEWSCREEN_RUTRACKER_USER}" \
+    "--rutracker-pass=${VIEWSCREEN_RUTRACKER_PASS}" \
     "--debug=${DEBUG}"

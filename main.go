@@ -32,6 +32,14 @@ import (
 	"golang.org/x/crypto/acme/autocert"
 )
 
+type Tracker int
+
+const (
+	Rutracker Tracker = iota
+	Tokiotosho
+	Piratebay
+)
+
 var (
 	// Flags
 	cli         = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
@@ -87,6 +95,16 @@ var (
 
 	// config
 	config *Config
+
+	// search history
+	history *StringSet
+
+	// trackers
+	trackers = map[string]Tracker{
+		"rutracker":  Rutracker,
+		"tokiotosho": Tokiotosho,
+		"piratebay":  Piratebay,
+	}
 )
 
 func NewLogtailer(size int64) (*logtailer, error) {
@@ -135,6 +153,8 @@ func init() {
 	cli.StringVar(&httpPrefix, "http-prefix", "/viewscreen", "HTTP URL prefix")
 	cli.StringVar(&httpUsername, "http-username", "viewscreen", "HTTP basic auth username")
 	cli.StringVar(&torrentListenAddr, "torrent-addr", ":61337", "listen address for torrent client")
+	cli.StringVar(&search.RutrackerUser, "rutracker-user", "", "Rutracker api user")
+	cli.StringVar(&search.RutrackerPass, "rutracker-pass", "", "Rutracker api pass")
 	cli.StringVar(&reverseProxyAuthIP, "reverse-proxy-ip", "", "reverse proxy auth IP")
 	cli.StringVar(&reverseProxyAuthHeader, "reverse-proxy-header", "X-Authenticated-User", "reverse proxy auth header")
 	cli.BoolVar(&showVersion, "version", false, "display version and exit")
@@ -571,8 +591,13 @@ func settings(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 func importHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	res := NewResponse(r, ps)
-
-	query := strings.TrimSpace(r.FormValue("q"))
+	if r.Method == "GET" {
+		transfers := ListTransfers()
+		res.Transfers = transfers
+		res.Section = "import"
+		HTML(w, "import.html", res)
+		return
+	}
 
 	// Require TOS
 	if !config.Get().AcceptTOS {
@@ -580,36 +605,47 @@ func importHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 		return
 	}
 
+	query := strings.TrimSpace(r.FormValue("query"))
+	tracker := strings.TrimSpace(r.FormValue("tab"))
+	page, err := strconv.ParseInt(strings.TrimSpace(r.FormValue("page")), 10, 64)
+	if err != nil {
+		logger.Debugf("importHandler: failed to parse page number")
+		page = 0
+	}
+
 	if query != "" {
 		// Add URL
 		if strings.HasPrefix(query, "http") || strings.HasPrefix(query, "magnet") {
-			if err := StartTransfer(query); err != nil {
+			if err := StartTransfer(query, downloader.NewDefaultOptions()); err != nil {
 				Error(w, err)
 				return
 			}
 		}
-
+		var results []search.Result
+		var pages []int
 		// Search query
-		results, err := search.Search(query)
+		logger.Debugf("importHandler: selected tracker: %s", tracker)
+		switch trackers[tracker] {
+		case Rutracker:
+			results, pages, err = search.SearchRutracker(query, int(page))
+		case Piratebay:
+			results, pages, err = search.SearchPirateBay(query, int(page))
+		case Tokiotosho:
+			results, pages, err = search.SearchTokioTosho(query, int(page))
+		}
+
 		if err != nil {
 			Error(w, err)
 			return
 		}
-		//// Truncate results
-		//if len(results) > 15 {
-		//	results = results[0:14]
-		//}
-
-		res.Results = results
 		res.Query = query
+		res.History.Add(query)
 		res.Results = results
+		res.Pages = pages
+		res.Page = int(page)
 	}
-
-	transfers := ListTransfers()
-
-	res.Transfers = transfers
 	res.Section = "import"
-	HTML(w, "import.html", res)
+	HTML(w, "search.html", res)
 }
 
 //
@@ -949,6 +985,9 @@ func main() {
 		logger.Fatal(err)
 	}
 
+	// search history
+	history = NewStringSet()
+
 	if httpHost == "" {
 		usage("missing HTTP host")
 		os.Exit(1)
@@ -1066,6 +1105,7 @@ func main() {
 
 	// Import
 	r.GET(Prefix("/import"), Log(Auth(importHandler, false)))
+	r.POST(Prefix("/import"), Log(Auth(importHandler, false)))
 
 	// API v1
 	r.GET(Prefix("/v1/status"), Log(v1Status))
