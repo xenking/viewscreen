@@ -13,7 +13,9 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/xenking/viewscreen/internal/downloader"
+
+	"github.com/xenking/viewscreen/viewscreen/downloader"
+	"github.com/xenking/viewscreen/viewscreen/utils"
 )
 
 type Transcoder struct {
@@ -231,7 +233,7 @@ func (t *Transcoder) transcode(srcname string) {
 	}
 
 	// Rename temp file to real file.
-	if err := os.Rename(tmpname, dstname); err != nil {
+	if err := utils.RenameFile(tmpname, dstname); err != nil {
 		log.Errorf("job %q: %s", srcname, err)
 		return
 	}
@@ -250,7 +252,7 @@ func (t *Transcoder) transcode(srcname string) {
 	}
 
 	log.Debugf("transcode complete: src duration = %f, dst duration = %f", srcinfo.Format.Duration, dstinfo.Format.Duration)
-	if srcinfo.Format.Duration+0.01 > dstinfo.Format.Duration {
+	if int(srcinfo.Format.Duration+0.01) > int(dstinfo.Format.Duration) {
 		log.Errorf("job %q: transcoded is too small (%f vs %f); deleting.", srcname, srcinfo.Format.Duration, dstinfo.Format.Duration)
 		if err := os.Remove(dstname); err != nil {
 			log.Error(err)
@@ -281,9 +283,9 @@ func (t *Transcoder) transcode(srcname string) {
 
 func GenerateContactSheet(videofile string) error {
 	// Adding contact sheet
-	dstdir := filepath.Dir(videofile)
-	thumbdir := filepath.Join(dstdir, "thumb", videofile)
-	thumbfile := filepath.Join(dstdir, "thumb", videofile, "thumbnail.jpg")
+	dstdir, videoname := filepath.Split(videofile)
+	thumbdir := filepath.Join(dstdir, "thumb", videoname)
+	thumbfile := filepath.Join(dstdir, "thumb", videoname, "thumbnail.jpg")
 	if err := downloader.EnsureDir(thumbdir); err != nil {
 		return fmt.Errorf("mkdir failed: %s (%s)", thumbdir, err)
 	}
@@ -330,8 +332,9 @@ func contactsheet(videofile, thumbdir string) error {
 		filepath.Join(thumbdir, "cs-%d.jpg"),
 	).CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("montage failed: %s (%s)", string(output), err)
+		if !strings.Contains(err.Error(), "unable to read font") {
+			return fmt.Errorf("montage failed: %s (%s)", string(output), err)
+		}
 	}
-
 	return nil
 }

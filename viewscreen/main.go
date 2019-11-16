@@ -1,7 +1,6 @@
-package main
+package viewscreen
 
 import (
-	"bytes"
 	"crypto/rand"
 	"crypto/tls"
 	"flag"
@@ -23,12 +22,13 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
-	"github.com/xenking/viewscreen/internal/downloader"
-	"github.com/xenking/viewscreen/internal/search"
-	"github.com/xenking/viewscreen/internal/transcoder"
-
 	"github.com/eduncan911/podcast"
+	"github.com/gobuffalo/packr/v2"
 	"github.com/julienschmidt/httprouter"
+	"github.com/xenking/viewscreen/viewscreen/downloader"
+	"github.com/xenking/viewscreen/viewscreen/search"
+	"github.com/xenking/viewscreen/viewscreen/transcoder"
+	"github.com/xenking/viewscreen/viewscreen/utils"
 	"golang.org/x/crypto/acme/autocert"
 )
 
@@ -80,7 +80,6 @@ var (
 	// set based on httpAddr
 	httpIP   string
 	httpPort string
-
 	// transcoder
 	tcer *transcoder.Transcoder
 
@@ -97,7 +96,7 @@ var (
 	config *Config
 
 	// search history
-	history *StringSet
+	history *utils.StringSet
 
 	// trackers
 	trackers = map[string]Tracker{
@@ -105,6 +104,9 @@ var (
 		"tokiotosho": Tokiotosho,
 		"piratebay":  Piratebay,
 	}
+
+	// serve templates assets
+	tmplBox *packr.Box = packr.New("tmplBox", "./templates")
 )
 
 func NewLogtailer(size int64) (*logtailer, error) {
@@ -402,12 +404,19 @@ func transferList(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 
 func transferMagnet(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	opt := &downloader.DownloadOptions{
-		Name:      r.FormValue("name"),
+		Name:      "",
 		Subsf:     r.FormValue("subsf"),
 		IsConvert: false,
 		IsSeeding: false,
 		IsSubs:    false,
 	}
+
+	name := r.FormValue("name")
+	slashes := regexp.MustCompile(`(/)`)
+	escape := regexp.MustCompile(`([*$><|{}~&;"\x60^#])`)
+	name = slashes.ReplaceAllString(name, "|")
+	name = escape.ReplaceAllString(name, "")
+	opt.Name = name
 
 	isSub := r.FormValue("sub")
 	if isSub != "" {
@@ -500,6 +509,26 @@ func transcodeCancel(w http.ResponseWriter, r *http.Request, ps httprouter.Param
 		return
 	}
 	Redirect(w, r, "/downloads/files/%s", dl.ID)
+}
+
+func transcodeAll(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	dl, err := FindDownload(ps.ByName("id"))
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	files := dl.Files(false, true)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	for _, f := range files {
+		if err := StartTranscode(f.Path); err != nil {
+			Error(w, err)
+			return
+		}
+	}
+
 }
 
 //
@@ -708,7 +737,7 @@ func feedPodcast(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	// Find the most recently updated file.
 	var updated time.Time
 	for _, dl := range dls {
-		for _, file := range dl.Files(false) {
+		for _, file := range dl.Files(false, false) {
 			if !file.Viewable() {
 				continue
 			}
@@ -729,7 +758,7 @@ func feedPodcast(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	for _, dl := range dls {
 		// Find viewable files
 		var files []File
-		for _, file := range dl.Files(false) {
+		for _, file := range dl.Files(false, false) {
 			if !file.Viewable() {
 				continue
 			}
@@ -891,7 +920,7 @@ func v1Files(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	}
 
 	var files []FriendFile
-	for _, f := range dl.Files(false) {
+	for _, f := range dl.Files(false, false) {
 		files = append(files, FriendFile{
 			ID:   f.ID,
 			Size: f.Info.Size(),
@@ -925,6 +954,7 @@ func v1Stream(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 // Assets
 //
 
+/*
 func staticAsset(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	serveAsset(w, r, ps.ByName("path"))
 }
@@ -948,7 +978,7 @@ func serveAsset(w http.ResponseWriter, r *http.Request, filename string) {
 	}
 	http.ServeContent(w, r, path, fi.ModTime(), bytes.NewReader(b))
 }
-
+*/
 //
 // Helpers
 //
@@ -1013,7 +1043,7 @@ func main() {
 	}
 
 	// search history
-	history = NewStringSet()
+	history = utils.NewStringSet()
 
 	if httpHost == "" {
 		usage("missing HTTP host")
@@ -1048,7 +1078,7 @@ func main() {
 		TorrentAddr: torrentListenAddr,
 		Logger:      logger,
 		Space: func() int64 {
-			di, err := NewDiskInfo(downloadDir)
+			di, err := utils.NewDiskInfo(downloadDir)
 			if err != nil {
 				logger.Fatal(err)
 			}
@@ -1068,6 +1098,9 @@ func main() {
 			logger.Fatal(err)
 		}
 	}
+
+	// serve static assets
+	staticBox := packr.New("static", "./static")
 
 	//
 	// Routes
@@ -1112,6 +1145,7 @@ func main() {
 	// TODO: Transcode all handler
 	r.GET(Prefix("/transcode/start/:id/*file"), Log(Auth(transcodeStart, false)))
 	r.GET(Prefix("/transcode/cancel/:id/*file"), Log(Auth(transcodeCancel, false)))
+	r.POST(Prefix("/transcode/all/:id"), Log(Auth(transcodeAll, false)))
 
 	// Friends
 	r.GET(Prefix("/friends"), Log(Auth(friends, true)))
@@ -1143,7 +1177,7 @@ func main() {
 	r.GET(Prefix("/v1/downloads/stream/:id/*file"), Log(Auth(v1Stream, true)))
 
 	// Assets
-	r.GET(Prefix("/static/*path"), Auth(staticAsset, false))
+	r.GET(Prefix("/static/*path"), Auth(http.FileServer(staticBox), false))
 	r.GET(Prefix("/logo.png"), logo)
 
 	//

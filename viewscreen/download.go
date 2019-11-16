@@ -1,6 +1,7 @@
-package main
+package viewscreen
 
 import (
+	"github.com/xenking/viewscreen/viewscreen/utils"
 	"os"
 	"path/filepath"
 	"strings"
@@ -86,7 +87,7 @@ func (dl Download) Rename(id string) error {
 	if newpath == downloadDir {
 		logger.Debugf("new path %q download %q", newpath, id)
 	}
-	return os.Rename(oldpath, newpath)
+	return utils.RenameDir(oldpath, newpath, true)
 }
 
 func (dl Download) Path() string {
@@ -119,7 +120,7 @@ func (dl Download) Size() int64 {
 	return size
 }
 
-func (dl Download) Files(thumbnails bool) []File {
+func (dl Download) Files(thumbnails, toTranscode bool) []File {
 	var files []File
 	filepath.Walk(dl.Path(), func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -129,13 +130,24 @@ func (dl Download) Files(thumbnails bool) []File {
 			return nil
 		}
 		if !thumbnails {
-			// TODO: Check player thumbnails and contact sheet
 			if strings.HasSuffix(info.Name(), "thumbnail.png") {
 				return nil
+			}
+			if strings.Contains(path, "/thumb") {
+				return filepath.SkipDir
 			}
 		}
 		if strings.HasPrefix(info.Name(), ".") {
 			return nil
+		}
+
+		if toTranscode {
+			ext := strings.TrimPrefix(filepath.Ext(info.Name()), ".")
+			switch ext {
+			case "mkv", "avi", "flv":
+			default:
+				return nil
+			}
 		}
 
 		// The ID is a relative path from the download's path.
@@ -156,19 +168,19 @@ func (dl Download) Files(thumbnails bool) []File {
 func (dl Download) GetEpisodes() ([]Episode, error) {
 	var episodes []Episode
 	num := 1
-	err := filepath.Walk(dl.Path(), func(path string, fi os.FileInfo, err error) error {
+	err := filepath.Walk(dl.Path(), func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		if !!fi.IsDir() {
+		if !!info.IsDir() {
 			return nil
 		}
 		if dl.Path() == filepath.Dir(path) {
-			ext := strings.TrimPrefix(filepath.Ext(fi.Name()), ".")
+			ext := strings.TrimPrefix(filepath.Ext(info.Name()), ".")
 			switch ext {
 			case "mp4", "m4v", "webm":
 				episodes = append(episodes, Episode{
-					ID:     fi.Name(),
+					ID:     info.Name(),
 					Number: num,
 				})
 				num += 1
@@ -199,16 +211,16 @@ func (dl Download) GetCurrentEpisode(current string) int {
 func (dl Download) GetFonts() []string {
 	var fonts []string
 	fontsdir := filepath.Join(dl.Path(), "subs", "fonts")
-	err := filepath.Walk(fontsdir, func(path string, fi os.FileInfo, err error) error {
+	err := filepath.Walk(fontsdir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		if !!fi.IsDir() {
+		if !!info.IsDir() {
 			return nil
 		}
-		ext := strings.TrimPrefix(filepath.Ext(fi.Name()), ".")
+		ext := strings.TrimPrefix(filepath.Ext(info.Name()), ".")
 		if ext == "ttf" {
-			fonts = append(fonts, fi.Name())
+			fonts = append(fonts, info.Name())
 		}
 		return nil
 	})
@@ -224,10 +236,10 @@ func (ep Episode) Name() string {
 
 func (dl Download) FindFile(id string) (File, error) {
 	thumbnails := false
-	if strings.Contains(id, "thumbnail") {
+	if strings.Contains(id, "thumbnail") || strings.Contains(id, "thumb/") {
 		thumbnails = true
 	}
-	for _, file := range dl.Files(thumbnails) {
+	for _, file := range dl.Files(thumbnails, false) {
 		if id == file.ID {
 			return file, nil
 		}

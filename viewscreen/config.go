@@ -1,7 +1,8 @@
-package main
+package viewscreen
 
 import (
 	"encoding/json"
+	"github.com/xenking/viewscreen/viewscreen/utils"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -71,5 +72,5 @@ func (c *Config) Save() error {
 	if err != nil {
 		return err
 	}
-	return Overwrite(c.filename, b, 0644)
+	return utils.Overwrite(c.filename, b, 0644)
 }

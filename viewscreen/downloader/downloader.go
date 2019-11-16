@@ -24,8 +24,8 @@ import (
 	"github.com/anacrolix/torrent"
 	"github.com/anacrolix/torrent/metainfo"
 	"github.com/anacrolix/torrent/storage"
-
 	"github.com/dustin/go-humanize"
+	"github.com/xenking/viewscreen/viewscreen/utils"
 	"golang.org/x/time/rate"
 )
 
@@ -37,10 +37,10 @@ var (
 	httpReadLimit int64 = 10 * (1024 * 1024)
 
 	// Default download speeds
-	defaultUploadSpeed   int64   = 100
-	defaultDownloadSpeed int64   = 200
-	defaultTransferSlots int     = 5
-	defaultTorrentRatio  float64 = 1.5
+	defaultUploadSpeed   int64 = 100
+	defaultDownloadSpeed int64 = 200
+	defaultTransferSlots       = 5
+	defaultTorrentRatio        = 1.5
 )
 
 type Downloader struct {
@@ -68,7 +68,6 @@ func NewDefaultOptions() *DownloadOptions {
 		IsSeeding: true,
 	}
 }
-
 
 type Config struct {
 	UploadSpeed   int64
@@ -407,7 +406,7 @@ func Ffthumb(videofile, thumbfile, args string, jpg bool) error {
 		best = filepath.Join(tmpdir, t.Name())
 	}
 	if best != "" {
-		return os.Rename(best, thumbfile)
+		return utils.RenameFile(best, thumbfile)
 	}
 	return fmt.Errorf("ffthumb failed: generating failed")
 }
@@ -417,8 +416,18 @@ func srtToAss(subfile, subdir string) error {
 	if err != nil {
 		return err
 	}
+	enconv, err := exec.LookPath("enconv")
+	if err != nil {
+		return err
+	}
+	output, err := exec.Command(enconv,
+		"-L", "russian", "-x", "UTF-8", subfile,
+	).CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("srt to ass failed: %s (%s)", string(output), err)
+	}
 	subname := strings.TrimSuffix(subfile, filepath.Ext(subfile))
-	output, err := exec.Command(ffmpeg,
+	output, err = exec.Command(ffmpeg,
 		"-i", subfile,
 		filepath.Join(subdir, subname, ".ass"),
 	).CombinedOutput()
@@ -445,6 +454,8 @@ func (l *Downloader) PostProcess(ctx context.Context, t *Transfer) error {
 	// TODO: Auto transcode option
 	// TODO: Auto-detect subs folder
 	// The biggest file has the "best" thumbnail for the whole download.
+
+	log.Debugf("download post process options: %q", t.PostOptions)
 	var best string
 	var biggest int64
 	for _, fi := range files {
@@ -466,7 +477,8 @@ func (l *Downloader) PostProcess(ctx context.Context, t *Transfer) error {
 				best = thumbcard
 			}
 		case "ass", "srt":
-			if !t.PostOptions.IsSubs{
+			if !t.PostOptions.IsSubs {
+				log.Debugln("postdownload options: disabled subs, skipped sub file")
 				continue
 			}
 			// TODO: Case: Multiply subs folders
@@ -482,22 +494,23 @@ func (l *Downloader) PostProcess(ctx context.Context, t *Transfer) error {
 					continue
 				}
 			} else {
-				if err := os.Rename(subfile, filepath.Join(subdir, fi.Name())); err != nil {
+				if err := utils.RenameFile(subfile, filepath.Join(subdir, fi.Name())); err != nil {
 					log.Debugf("move subfile failed: %s (%s)", subfile, err)
 					continue
 				}
 			}
 		case "ttf":
-			if !t.PostOptions.IsSubs{
+			if !t.PostOptions.IsSubs {
+				log.Debugf("postdownload options: disabled subs, skipped font file")
 				continue
 			}
-			fontsdir := filepath.Join(t.DownloadDir, "subs","fonts")
+			fontsdir := filepath.Join(t.DownloadDir, "subs", "fonts")
 			if err := EnsureDir(fontsdir); err != nil {
 				log.Debugf("mkdir failed: %s (%s)", fontsdir, err)
 				continue
 			}
 			fontfile := filepath.Join(currentpath, fi.Name())
-			if err := os.Rename(fontfile, filepath.Join(fontsdir, fi.Name())); err != nil {
+			if err := utils.RenameFile(fontfile, filepath.Join(fontsdir, fi.Name())); err != nil {
 				log.Debugf("move fontfile failed: %s (%s)", fontfile, err)
 				continue
 			}
@@ -514,6 +527,14 @@ func (l *Downloader) PostProcess(ctx context.Context, t *Transfer) error {
 			return err
 		}
 	}
+
+	l.Lock("rename")
+	if err := t.Rename(t.PostOptions.Name); err != nil {
+		log.Debugf("download rename failed: %s (%s)", t.DownloadDir, err)
+		l.Unlock("rename")
+		return err
+	}
+	l.Unlock("rename")
 	return nil
 }
 
@@ -666,20 +687,13 @@ func (l *Downloader) transferTorrent(ctx context.Context, t *Transfer) error {
 
 	// Resolve directory name form config
 	info := t.Torrent.Info()
-	name := info.Name
-	if !info.IsDir() {
-		name = strings.TrimSuffix(info.Name, filepath.Ext(info.Name))
-	}
-	if t.PostOptions.Name != "" {
-		name = strings.TrimSpace(t.PostOptions.Name)
-	}
 
-	dldir := filepath.Join(l.Config.GetDownloadDir(), name)
+	dldir := filepath.Join(l.Config.GetDownloadDir(), info.Name)
+
 	// Individual files get a directory.
 	if !info.IsDir() {
-		dldir = filepath.Join(l.Config.GetDownloadDir(), name)
+		dldir = filepath.Join(l.Config.GetDownloadDir(), strings.TrimSuffix(info.Name, filepath.Ext(info.Name)))
 	}
-
 
 	l.Lock("setting DownloadDir")
 	t.DownloadDir = dldir
@@ -731,10 +745,10 @@ func (l *Downloader) transferTorrent(ctx context.Context, t *Transfer) error {
 				l.Config.Logger.Debugf("transfer is downloading %s remaining", humanize.Bytes(uint64(remaining)))
 
 				if remaining == 0 {
-					if err := l.PostProcess(ctx, t); err != nil {
+					if err := t.UnmarkDownloading(); err != nil {
 						return err
 					}
-					if err := t.UnmarkDownloading(); err != nil {
+					if err := l.PostProcess(ctx, t); err != nil {
 						return err
 					}
 					if target == 0 {
@@ -891,10 +905,10 @@ func (l *Downloader) Add(rawurl string, opt *DownloadOptions) (Transfer, error) 
 	}
 
 	t := &Transfer{
-		ID:        fmt.Sprintf("%x", md5.Sum([]byte(u.String()))),
-		URL:       u,
-		Created:   time.Now(),
-		SeedRatio: l.Config.GetTorrentRatio(),
+		ID:          fmt.Sprintf("%x", md5.Sum([]byte(u.String()))),
+		URL:         u,
+		Created:     time.Now(),
+		SeedRatio:   l.Config.GetTorrentRatio(),
 		PostOptions: opt,
 	}
 	l.transfers = append(l.transfers, t)
@@ -993,6 +1007,14 @@ func (t Transfer) TotalSeedSize() int64 {
 		return int64(float64(t.TotalSize()) * t.SeedRatio)
 	}
 	return 0
+}
+
+func (t Transfer) Rename(name string) error {
+	basepath := filepath.Dir(t.DownloadDir)
+	newpath := filepath.Join(basepath, name)
+	newpath = filepath.Clean(newpath)
+	t.DownloadDir = newpath
+	return utils.RenameDir(basepath, newpath, true)
 }
 
 // UploadedBytes returns uploaded bytes.

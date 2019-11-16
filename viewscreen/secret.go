@@ -1,7 +1,8 @@
-package main
+package viewscreen
 
 import (
 	"fmt"
+	"github.com/xenking/viewscreen/viewscreen/utils"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -38,7 +39,7 @@ func (s Secret) Get() string {
 
 // Reset generates and writes a new secret to the file.
 func (s Secret) Reset() error {
-	n, err := RandomNumber()
+	n, err := utils.RandomNumber()
 	if err != nil {
 		return err
 	}

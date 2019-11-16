@@ -1,4 +1,4 @@
-package main
+package viewscreen
 
 import (
 	"errors"
@@ -8,7 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/xenking/viewscreen/internal/downloader"
+	"github.com/xenking/viewscreen/viewscreen/downloader"
+	"github.com/xenking/viewscreen/viewscreen/utils"
 )
 
 var ErrDownloadNotFound = errors.New("download not found")
@@ -21,7 +22,7 @@ var ErrFriendNotFound = errors.New("friend not found")
 //
 
 func ListDownloads() ([]Download, error) {
-	dirs, _, err := ls(downloadDir)
+	dirs, _, err := utils.ListDirectory(downloadDir)
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +161,7 @@ func ListFriends() ([]Friend, error) {
 		return friends, nil
 	}
 
-	_, files, err := ls(friendsDir)
+	_, files, err := utils.ListDirectory(friendsDir)
 	if err != nil {
 		return nil, err
 	}

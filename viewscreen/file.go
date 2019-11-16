@@ -1,6 +1,7 @@
-package main
+package viewscreen
 
 import (
+	"github.com/xenking/viewscreen/viewscreen/utils"
 	"os"
 	"path/filepath"
 	"strings"
@@ -62,5 +63,5 @@ func (f File) Rename(name string) error {
 	newpath = filepath.Join(newpath, name)
 	newpath = filepath.Clean(newpath)
 
-	return os.Rename(oldpath, newpath)
+	return utils.RenameFile(oldpath, newpath)
 }

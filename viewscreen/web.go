@@ -1,17 +1,18 @@
-package main
+package viewscreen
 
 import (
+	"context"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"github.com/xenking/viewscreen/viewscreen/downloader"
+	"github.com/xenking/viewscreen/viewscreen/search"
+	"github.com/xenking/viewscreen/viewscreen/utils"
 	"html/template"
 	"net"
 	"net/http"
 	"strings"
 	"time"
-
-	"github.com/xenking/viewscreen/internal/downloader"
-	"github.com/xenking/viewscreen/internal/search"
 
 	"github.com/dustin/go-humanize"
 	"github.com/julienschmidt/httprouter"
@@ -27,7 +28,7 @@ type Response struct {
 	User       string
 	FeedSecret string
 
-	DiskInfo *DiskInfo
+	DiskInfo *utils.DiskInfo
 	Request  *http.Request
 
 	Section string
@@ -46,7 +47,7 @@ type Response struct {
 
 	Sort    string
 	Query   string
-	History *StringSet
+	History *utils.StringSet
 	Page    int
 	Pages   []int
 
@@ -99,7 +100,7 @@ var (
 )
 
 func NewResponse(r *http.Request, ps httprouter.Params) *Response {
-	di, err := NewDiskInfo(downloadDir)
+	di, err := utils.NewDiskInfo(downloadDir)
 	if err != nil {
 		panic(err)
 	}
@@ -146,27 +147,15 @@ func JSON(w http.ResponseWriter, data interface{}) {
 func HTML(w http.ResponseWriter, target string, data interface{}) {
 	t := template.New(target)
 	t.Funcs(funcMap)
-	for _, filename := range AssetNames() {
-		if !strings.HasPrefix(filename, "templates/") {
-			continue
-		}
-		name := strings.TrimPrefix(filename, "templates/")
-		b, err := Asset(filename)
-		if err != nil {
-			Error(w, err)
-			return
-		}
+	s, err := tmplBox.FindString(target)
+	if err != nil {
+		Error(w, err)
+		return
+	}
 
-		var tmpl *template.Template
-		if name == t.Name() {
-			tmpl = t
-		} else {
-			tmpl = t.New(name)
-		}
-		if _, err := tmpl.Parse(string(b)); err != nil {
-			Error(w, err)
-			return
-		}
+	if t, err = t.Parse(s); err != nil {
+		Error(w, err)
+		return
 	}
 	// TODO: sort off html serve or replace router
 	w.Header().Set("Content-Type", "text/html")
@@ -297,4 +286,44 @@ func BaseURL(r *http.Request) string {
 		scheme = "https"
 	}
 	return fmt.Sprintf("%s://%s%s", scheme, httpHost, httpPrefix)
+}
+
+func GET(ctx context.Context, rawurl string) (*http.Response, error) {
+	return request("GET", ctx, rawurl)
+}
+
+func POST(ctx context.Context, rawurl string) (*http.Response, error) {
+	return request("POST", ctx, rawurl)
+}
+
+func DELETE(ctx context.Context, rawurl string) (*http.Response, error) {
+	return request("DELETE", ctx, rawurl)
+}
+
+const httpUserAgent = "Mozilla/5.0 (Windows NT 5.1; rv:13.0) Gecko/20100101 Firefox/13.0.1"
+
+func request(method string, ctx context.Context, rawurl string) (*http.Response, error) {
+	// TODO: investigate issues with sharing an HTTP client across requests, which would be more efficient.
+	httpClient := &http.Client{}
+
+	req, err := http.NewRequest(method, rawurl, nil)
+	if err != nil {
+		return nil, err
+	}
+	if ctx != nil {
+		req = req.WithContext(ctx)
+	} else {
+		httpClient.Timeout = 10 * time.Second
+	}
+	req.Header.Set("User-Agent", httpUserAgent)
+
+	//logger.Debugf("HTTP request: %s %s", req.Method, req.URL)
+	res, err := httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if res.StatusCode < 200 || res.StatusCode >= 400 {
+		return nil, fmt.Errorf("request failed: %s", http.StatusText(res.StatusCode))
+	}
+	return res, nil
 }
