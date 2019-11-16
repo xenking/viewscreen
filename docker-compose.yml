@@ -1,17 +1,9 @@
 version: "3.3"
 services:
-  viewscreen-build:
-    build:
-      dockerfile: Dockerfile.build
-      context: .
-    image: xenking/viewscreen:build
-    network_mode: "bridge"
   viewscreen:
     build:
       dockerfile: Dockerfile
       context: .
-    depends_on:
-      - viewscreen-build
     image: xenking/viewscreen:local
     container_name: viewscreen
     restart: always

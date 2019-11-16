@@ -46,7 +46,7 @@ if [ -z "${VIEWSCREEN_RUTRACKER_PASS-}" ] ; then
     export VIEWSCREEN_RUTRACKER_PASS="none"
 fi
 
-exec /usr/bin/viewscreen \
+exec /usr/local/bin/viewscreen \
     "--http-host=${VIEWSCREEN_HTTP_HOST}" \
     "--http-addr=${VIEWSCREEN_HTTP_ADDR}" \
     "--http-prefix=${VIEWSCREEN_HTTP_PREFIX}" \
